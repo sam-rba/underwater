@@ -16,7 +16,8 @@ using namespace std;
 
 #define ALPHA 1.0 // red compensation factor
 #define GAMMA 0.8 // gamma correction
-#define GAUSS_KERN_SIZE cv::Size(5, 5) // Gaussian blur filter size
+#define GAUSS_KSIZE cv::Size(5, 5) // Gaussian blur kernel size
+#define LAPLACE_KSIZE 3 // Laplacian kernel size
 
 typedef enum {
 	OK,
@@ -42,9 +43,22 @@ readImage(const string &path, cv::Mat &img) {
 // Write a CV_64FC3 BGR image to disk.
 static void
 writeImage(const string &path, const cv::Mat &img) {
+	assert(img.type() == CV_64FC3);
+
 	cv::Mat tmp;
 	cv::normalize(img, tmp, 255, 0, cv::NORM_MINMAX);
 	tmp.convertTo(tmp, CV_8UC3);
+	imwrite(path, tmp);
+}
+
+// Write a CV_64F image to disk.
+static void
+write1dImage(const string &path, const cv::Mat &img) {
+	assert(img.type() == CV_64F);
+
+	cv::Mat tmp;
+	cv::normalize(img, tmp, 255, 0, cv::NORM_MINMAX);
+	tmp.convertTo(tmp, CV_8U);
 	imwrite(path, tmp);
 }
 
@@ -124,11 +138,35 @@ sharpen(const cv::Mat &img) {
 	cv::Mat blur, norm, s;
 
 	// Sharpen
-	cv::GaussianBlur(img, blur, GAUSS_KERN_SIZE, 0);
+	cv::GaussianBlur(img, blur, GAUSS_KSIZE, 0);
 	cv::normalize(img - blur, norm, 1.0, 0.0, cv::NORM_MINMAX);
 	s = (img + norm) / 2.0;
 
 	return s;
+}
+
+// Laplacian contrast weight.
+// Input is CV_64FC3 BGR.
+// Output is CV_64F.
+static cv::Mat
+laplacianWeight(const cv::Mat &img) {
+	assert(img.type() == CV_64FC3);
+
+	// Convert to L*a*b colorspace to get luminance channel
+	cv::Mat labImg = img.clone();
+	labImg.convertTo(labImg, CV_32FC3); // BGR2Lab only works with float32
+	cv::cvtColor(labImg, labImg, cv::COLOR_BGR2Lab);
+	cv::Mat channels[3];
+	cv::split(labImg, channels);
+	cv::Mat &lum = channels[0]; // luminance
+
+	// Take Laplacian of luminance
+	cv::Laplacian(lum, lum, CV_32F, LAPLACE_KSIZE);
+	lum = cv::abs(lum);
+
+	lum.convertTo(lum, CV_64F);
+
+	return lum;
 }
 
 // Enhance the image using color balance and fusion.
@@ -148,6 +186,12 @@ enhance(cv::Mat &img) {
 	cv::Mat s = sharpen(img);
 	writeImage("gamma_corrected.png", g);
 	writeImage("sharpened.png", s);
+
+	// Laplacian weights
+	cv::Mat wl1 = laplacianWeight(g); // W_L of gamma-corrected image
+	cv::Mat wl2 = laplacianWeight(s); // W_L of sharpened image
+	write1dImage("wl1.png", wl1);
+	write1dImage("wl2.png", wl2);
 
 	// TODO
 
