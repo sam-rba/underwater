@@ -204,6 +204,38 @@ saliencyWeight(const cv::Mat &img) {
 	return s;
 }
 
+// Saturation weight.
+// Input is CV_64FC3 BGR.
+// Output is CV_64F.
+static cv::Mat
+saturationWeight(const cv::Mat &img) {
+	assert(img.type() == CV_64FC3);
+
+	// Split BGR channels
+	cv::Mat bgrChans[3];
+	cv::split(img, bgrChans);
+	cv::Mat &b = bgrChans[0];
+	cv::Mat &g = bgrChans[1];
+	cv::Mat &r = bgrChans[2];
+
+	// Split L*a*b channels to get luminance
+	cv::Mat lab = img.clone();
+	lab.convertTo(lab, CV_32FC3); // BGR2Lab only works with float32
+	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
+	lab.convertTo(lab, CV_64FC3); // convert back to float64
+	cv::Mat labChans[3];
+	cv::split(lab, labChans);
+	cv::Mat &l = labChans[0]; // luminance
+
+	// Weight
+	cv::Mat rsubl2, gsubl2, bsubl2, w;
+	cv::pow(r - l, 2, rsubl2);
+	cv::pow(g - l, 2, gsubl2);
+	cv::pow(b - l, 2, bsubl2);
+	cv::sqrt((rsubl2 + gsubl2 + bsubl2) / 3.0, w);
+	return w;
+}
+
 // Enhance the image using color balance and fusion.
 // Image is CV_64FC3 BGR.
 static void
@@ -229,10 +261,16 @@ enhance(cv::Mat &img) {
 	write1dImage("wl2.png", wl2);
 
 	// Saliency weights
-	cv::Mat ws1 = saliencyWeight(g); // W_S of gamma-corrected image
-	cv::Mat ws2 = saliencyWeight(s); // W_S of sharpened image
-	write1dImage("ws1.png", ws1);
-	write1dImage("ws2.png", ws2);
+	cv::Mat wsal1 = saliencyWeight(g); // W_S of gamma-corrected image
+	cv::Mat wsal2 = saliencyWeight(s); // W_S of sharpened image
+	write1dImage("wsal1.png", wsal1);
+	write1dImage("wsal2.png", wsal2);
+
+	// Saturation weights
+	cv::Mat wsat1 = saturationWeight(g); // W_Sat of gamma-corrected image
+	cv::Mat wsat2 = saturationWeight(s); // W_Sat of sharpened image
+	write1dImage("wsat1.png", wsat1);
+	write1dImage("wsat2.png", wsat2);
 
 	// TODO
 
