@@ -153,11 +153,11 @@ laplacianWeight(const cv::Mat &img) {
 	assert(img.type() == CV_64FC3);
 
 	// Convert to L*a*b colorspace to get luminance channel
-	cv::Mat labImg = img.clone();
-	labImg.convertTo(labImg, CV_32FC3); // BGR2Lab only works with float32
-	cv::cvtColor(labImg, labImg, cv::COLOR_BGR2Lab);
+	cv::Mat lab = img.clone();
+	lab.convertTo(lab, CV_32FC3); // BGR2Lab only works with float32
+	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
 	cv::Mat channels[3];
-	cv::split(labImg, channels);
+	cv::split(lab, channels);
 	cv::Mat &lum = channels[0]; // luminance
 
 	// Take Laplacian of luminance
@@ -167,6 +167,41 @@ laplacianWeight(const cv::Mat &img) {
 	lum.convertTo(lum, CV_64F);
 
 	return lum;
+}
+
+// Saliency weight.
+// Input is CV_64FC3 BGR.
+// Output is CV_64F.
+static cv::Mat
+saliencyWeight(const cv::Mat &img) {
+	assert(img.type() == CV_64FC3);
+
+	// Convert to L*a*b colorspace
+	cv::Mat lab = img.clone();
+	lab.convertTo(lab, CV_32FC3); // BGR2Lab only works with float32
+	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
+	lab.convertTo(lab, CV_64FC3); // convert back to float64
+
+	// Mean
+	cv::Scalar mu = cv::mean(lab);
+
+	// Blur with separable 
+	cv::Mat kern = (cv::Mat_<double>(1,5) << 1, 4, 6, 4, 1) / 16.0; // separable binomial kernel
+	cv::Mat blur;
+	cv::sepFilter2D(lab, blur, CV_64FC3, kern, kern);
+
+	// Mean - Blur
+	cv::Mat chans[3];
+	cv::split(mu - blur, chans);
+
+	// Element-wise L2 norm across channels
+	// I.e. for each element i, compute norm(<Li, ai, bi>)
+	cv::Mat s;
+	cv::sqrt(
+		chans[0].mul(chans[0]) + chans[1].mul(chans[1]) + chans[2].mul(chans[2]),
+		s);
+
+	return s;
 }
 
 // Enhance the image using color balance and fusion.
@@ -192,6 +227,12 @@ enhance(cv::Mat &img) {
 	cv::Mat wl2 = laplacianWeight(s); // W_L of sharpened image
 	write1dImage("wl1.png", wl1);
 	write1dImage("wl2.png", wl2);
+
+	// Saliency weights
+	cv::Mat ws1 = saliencyWeight(g); // W_S of gamma-corrected image
+	cv::Mat ws2 = saliencyWeight(s); // W_S of sharpened image
+	write1dImage("ws1.png", ws1);
+	write1dImage("ws2.png", ws2);
 
 	// TODO
 
