@@ -12,6 +12,8 @@
 using namespace std;
 using namespace cv;
 
+#define ALPHA 1.0 // red compensation factor
+
 typedef enum {
 	OK,
 	FAIL,
@@ -38,6 +40,44 @@ writeImage(const string &path, const Mat &img) {
 	imwrite(path, tmp);
 }
 
+// Compensate the red channel of the image using (4).
+// Expects img in CV_64FC3 BGR colorspace.
+// Returns the compensated red channel.
+static Mat
+compensateRed(const Mat &img) {
+	// Split BGR channels
+	Mat channels[3];
+	split(img, channels);
+	Mat &g = channels[1];
+	Mat &r = channels[2];
+
+	// Mean of green channel
+	Scalar gmeans = mean(g);
+	assert((255*(int)gmeans[1] | 255*(int)gmeans[2] | 255*(int)gmeans[3]) == 0); // should have only one channel
+	double gmean = gmeans[0];
+
+	// Mean of red channel
+	Scalar rmeans = mean(r);
+	assert((255*(int)rmeans[1] | 255*(int)rmeans[2] | 255*(int)rmeans[3]) == 0); // should have only one channel
+	double rmean = rmeans[0];
+
+	// Compensate red channel
+	Mat tmp;
+	multiply(ALPHA * (gmean - rmean) * (1.0 - r), g, tmp);
+	r = r + tmp;
+
+	return r;
+}
+
+static Mat
+enhance(const Mat &img) {
+	Mat r = compensateRed(img);
+
+	// TODO
+	Mat enhanced;
+	return enhanced;
+}
+
 int
 main(int argc, const char *argv[]) {
 	// Read input image
@@ -53,5 +93,7 @@ main(int argc, const char *argv[]) {
 		return 1;
 	}
 
-	writeImage("out.png", img); // TODO: remove
+	Mat enhanced = enhance(img);
+
+	writeImage("enhanced.png", enhanced);
 }
