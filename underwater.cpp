@@ -182,13 +182,23 @@ saliencyWeight(const cv::Mat &img) {
 	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
 	lab.convertTo(lab, CV_64FC3); // convert back to float64
 
-	// Mean
-	cv::Scalar mu = cv::mean(lab);
-
-	// Blur with separable 
-	cv::Mat kern = (cv::Mat_<double>(1,5) << 1, 4, 6, 4, 1) / 16.0; // separable binomial kernel
+	cv::Scalar mu;
 	cv::Mat blur;
-	cv::sepFilter2D(lab, blur, CV_64FC3, kern, kern);
+	#pragma omp parallel sections
+	{
+		// Mean
+		#pragma omp section
+		{
+			mu = cv::mean(lab);
+		}
+
+		// Blur with separable binomial filter
+		#pragma omp section
+		{
+			cv::Mat kern = (cv::Mat_<double>(1,5) << 1, 4, 6, 4, 1) / 16.0;
+			cv::sepFilter2D(lab, blur, CV_64FC3, kern, kern);
+		}
+	}
 
 	// Mean - Blur
 	cv::Mat chans[3];
@@ -229,9 +239,15 @@ saturationWeight(const cv::Mat &img) {
 
 	// Weight
 	cv::Mat rsubl2, gsubl2, bsubl2, w;
-	cv::pow(r - l, 2, rsubl2);
-	cv::pow(g - l, 2, gsubl2);
-	cv::pow(b - l, 2, bsubl2);
+	#pragma omp parallel sections
+	{
+		#pragma omp section
+			cv::pow(r - l, 2, rsubl2);
+		#pragma omp section
+			cv::pow(g - l, 2, gsubl2);
+		#pragma omp section
+			cv::pow(b - l, 2, bsubl2);
+	}
 	cv::sqrt((rsubl2 + gsubl2 + bsubl2) / 3.0, w);
 	return w;
 }
@@ -249,28 +265,63 @@ enhance(cv::Mat &img) {
 	whiteBalance(img);
 
 	// Gamma correction and sharpening
-	cv::Mat g = gammaCorrect(img);
-	cv::Mat s = sharpen(img);
-	writeImage("gamma_corrected.png", g);
-	writeImage("sharpened.png", s);
+	cv::Mat g, s;
+	#pragma omp parallel sections
+	{
+		#pragma omp section
+		{
+			g = gammaCorrect(img);
+			writeImage("gamma_corrected.png", g);
+		}
+		#pragma omp section
+		{
+			s = sharpen(img);
+			writeImage("sharpened.png", s);
+		}
+	}
 
-	// Laplacian weights
-	cv::Mat wl1 = laplacianWeight(g); // W_L of gamma-corrected image
-	cv::Mat wl2 = laplacianWeight(s); // W_L of sharpened image
-	write1dImage("wl1.png", wl1);
-	write1dImage("wl2.png", wl2);
+	// Weight maps
+	cv::Mat wl1, wl2; // Laplacian weights
+	cv::Mat wsal1, wsal2; // saliency weights
+	cv::Mat wsat1, wsat2; // saturation weights
+	#pragma omp parallel sections
+	{
+		// Laplacian weights
+		#pragma omp section
+		{
+			wl1 = laplacianWeight(g); // W_L of gamma-corrected image
+			write1dImage("wl1.png", wl1);
+		}
+		#pragma omp section
+		{
+			wl2 = laplacianWeight(s); // W_L of sharpened image
+			write1dImage("wl2.png", wl2);
+		}
 
-	// Saliency weights
-	cv::Mat wsal1 = saliencyWeight(g); // W_S of gamma-corrected image
-	cv::Mat wsal2 = saliencyWeight(s); // W_S of sharpened image
-	write1dImage("wsal1.png", wsal1);
-	write1dImage("wsal2.png", wsal2);
+		// Saliency weights
+		#pragma omp section
+		{
+			wsal1 = saliencyWeight(g); // W_S of gamma-corrected image
+			write1dImage("wsal1.png", wsal1);
+		}
+		#pragma omp section
+		{
+			wsal2 = saliencyWeight(s); // W_S of sharpened image
+			write1dImage("wsal2.png", wsal2);
+		}
 
-	// Saturation weights
-	cv::Mat wsat1 = saturationWeight(g); // W_Sat of gamma-corrected image
-	cv::Mat wsat2 = saturationWeight(s); // W_Sat of sharpened image
-	write1dImage("wsat1.png", wsat1);
-	write1dImage("wsat2.png", wsat2);
+		// Saturation weights
+		#pragma omp section
+		{
+			wsat1 = saturationWeight(g); // W_Sat of gamma-corrected image
+			write1dImage("wsat1.png", wsat1);
+		}
+		#pragma omp section
+		{
+			wsat2 = saturationWeight(s); // W_Sat of sharpened image
+			write1dImage("wsat2.png", wsat2);
+		}
+	}
 
 	// TODO
 
