@@ -8,54 +8,11 @@
 #include <stdint.h>
 
 #include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/xphoto/white_balance.hpp>
 
 #include "underwater.hpp"
 
 using namespace std;
-
-// Compensate the red channel of the image using (4).
-// Image is CV_64FC3 BGR.
-static void
-compensateRed(cv::Mat &img) {
-	assert(img.type() == CV_64FC3);
-
-	// Split BGR channels
-	cv::Mat channels[3];
-	cv::split(img, channels);
-	cv::Mat &g = channels[1];
-	cv::Mat &r = channels[2];
-
-	// Compensate red channel
-	cv::Mat tmp;
-	cv::multiply(ALPHA * (cv::mean(g)[0] - cv::mean(r)[0]) * (1.0 - r), g, tmp);
-	r = r + tmp;
-
-	// Merge channels
-	cv::merge(channels, 3, img);
-}
-
-// White-balance the image using Gray-World.
-// Image is CV_64FC3 BGR
-static void
-whiteBalance(cv::Mat &img) {
-	assert(img.type() == CV_64FC3);
-
-	// Convert to uint16
-	cv::normalize(img, img, UINT16_MAX, 0, cv::NORM_MINMAX);
-	img.convertTo(img, CV_16UC3);
-
-	cv::Ptr<cv::xphoto::GrayworldWB> wb = cv::xphoto::createGrayworldWB();
-	wb->balanceWhite(img, img);
-
-	// Convert back to float64
-	img.convertTo(img, CV_64FC3);
-	cv::normalize(img, img, 1.0, 0.0, cv::NORM_MINMAX);
-
-	writeImage("whitebalanced.png", img);
-}
 
 // Gamma-correct the white-balanced image to get the "first input" of the multiscale fusion.
 // Input and output are CV_64FC3 BGR.
@@ -105,11 +62,9 @@ static cv::Mat
 enhance(cv::Mat &img) {
 	assert(img.type() == CV_64FC3);
 
-	// Compensate red channel.
-	compensateRed(img);
-
 	// White balance with Gray-World
 	whiteBalance(img);
+	writeImage("whitebalanced.png", img);
 
 	// Gamma correction and sharpening
 	cv::Mat i1, i2;

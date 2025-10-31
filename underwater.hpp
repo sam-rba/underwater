@@ -18,6 +18,10 @@ void writeImage(const char *path, const cv::Mat &img);
 // Write a CV_64F image to disk.
 void write1dImage(const char *path, const cv::Mat &img);
 
+// White-balance the image using red-channel compensation and Gray-World.
+// Image is CV_64FC3 BGR
+void whiteBalance(cv::Mat &img);
+
 // Laplacian contrast weight.
 // Input is CV_64FC3 BGR.
 // Output is CV_64F.
