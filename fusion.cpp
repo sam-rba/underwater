@@ -1,12 +1,9 @@
 #include <cassert>
-#include <iostream>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
 #include "underwater.hpp"
-
-using namespace std;
 
 // Gaussian lowpass filter.
 static cv::Mat
@@ -85,10 +82,8 @@ fuse(const cv::Mat &i1, const cv::Mat &i2, const cv::Mat &w1, const cv::Mat &w2,
 		gw2 = decimate(filter(gw2));
 
 		// Fuse level l
-		cerr << li1.size << endl;
-		cerr << gw1.size << endl;
 		rl = mul(li1, upsample(gw1, li1.rows, li2.cols)) +
-			mul(li2, upsample(gw2, li2.rows, li2.cols)); // compute this level
+			mul(li2, upsample(gw2, li2.rows, li2.cols));
 
 		// Add to running sum -- R = sum(Rl)
 		r += upsample(rl, r.rows, r.cols);

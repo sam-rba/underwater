@@ -10,13 +10,13 @@ typedef enum {
 } Status;
 
 // Read an image from disk and convert it CV_64FC3 BGR.
-Status readImage(const char *path, cv::Mat &img);
+Status readImage(const std::string &path, cv::Mat &img);
 
 // Write a CV_64FC3 BGR image to disk.
-void writeImage(const char *path, const cv::Mat &img);
+Status writeImage(const std::string &path, const cv::Mat &img);
 
-// Write a CV_64F image to disk.
-void write1dImage(const char *path, const cv::Mat &img);
+// Write a single-channel CV_64F image to disk.
+Status writeImage1c(const std::string &path, const cv::Mat &img);
 
 // White-balance the image using red-channel compensation and Gray-World.
 // Image is CV_64FC3 BGR
