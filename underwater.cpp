@@ -101,7 +101,7 @@ sharpen(const cv::Mat &img) {
 
 // Enhance the image using color balance and fusion.
 // Image is CV_64FC3 BGR.
-static void
+static cv::Mat
 enhance(cv::Mat &img) {
 	assert(img.type() == CV_64FC3);
 
@@ -181,7 +181,7 @@ enhance(cv::Mat &img) {
 	int n = log2((img.rows + img.cols) / 2 / 10);
 	n = max(1, n); // n >= 1
 	cv::Mat r = fuse(i1, i2, w1, w2, n);
-	writeImage("enhanced.png", r);
+	return r;
 }
 
 int
@@ -200,8 +200,6 @@ main(int argc, const char *argv[]) {
 	}	
 
 	// Enhance image
-	enhance(img);
-
-	// Write output
-	writeImage("enhanced.png", img);
+	cv::Mat r = enhance(img);
+	writeImage("enhanced.png", r);
 }
