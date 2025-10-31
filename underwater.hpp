@@ -2,6 +2,7 @@
 #define GAMMA 0.8 // gamma correction
 #define GAUSS_KSIZE cv::Size(5, 5) // Gaussian blur kernel size
 #define LAPLACE_KSIZE 3 // Laplacian kernel size
+#define DELTA 0.1 // regularization term for weight map merge
 
 typedef enum {
 	OK,
@@ -31,3 +32,15 @@ cv::Mat saliencyWeight(const cv::Mat &img);
 // Input is CV_64FC3 BGR.
 // Output is CV_64F.
 cv::Mat saturationWeight(const cv::Mat &img);
+
+// Merge the weight maps of the two inputs into two aggregated weight maps.
+// wl[12] are the Laplacian weight maps.
+// wsal[12] are the saliency weight maps.
+// wsat[[12] are the saturation weight maps.
+// w[12] are the aggregated weight maps.
+// All Mats are CV_64FC3 BGR.
+void
+mergeWeightMaps(const cv::Mat &wl1, const cv::Mat &wl2,
+	const cv::Mat &wsal1, const cv::Mat &wsal2,
+	const cv::Mat &wsat1, const cv::Mat &wsat2,
+	cv::Mat &w1, cv::Mat &w2);

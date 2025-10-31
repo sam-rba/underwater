@@ -170,6 +170,12 @@ enhance(cv::Mat &img) {
 		}
 	}
 
+	// Merge weight maps
+	cv::Mat w1, w2; // aggregated weight map for each input
+	mergeWeightMaps(wl1, wl2, wsal1, wsal2, wsat1, wsat2, w1, w2);
+	write1dImage("w1.png", w1);
+	write1dImage("w2.png", w2);
+
 	// TODO
 
 }

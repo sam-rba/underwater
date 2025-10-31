@@ -100,3 +100,16 @@ saturationWeight(const cv::Mat &img) {
 	cv::sqrt((rsubl2 + gsubl2 + bsubl2) / 3.0, w);
 	return w;
 }
+
+void
+mergeWeightMaps(const cv::Mat &wl1, const cv::Mat &wl2,
+	const cv::Mat &wsal1, const cv::Mat &wsal2,
+	const cv::Mat &wsat1, const cv::Mat &wsat2,
+	cv::Mat &w1, cv::Mat &w2)
+{
+	cv::Mat wk1 = wl1 + wsal1 + wsat1;
+	cv::Mat wk2 = wl2 + wsal2 + wsat2;
+	cv::Mat denom = wk1 + wk2 + 2.0 * DELTA;
+	w1 = (wk1 + DELTA) / denom;
+	w2 = (wk2 + DELTA) / denom;
+}
