@@ -13,5 +13,7 @@ underwater: ${OBJ}
 %.o: %.cpp
 	${CC} -c ${CFLAGS} $<
 
+${OBJ}: ${HDR}
+
 clean:
 	rm -f underwater *.o

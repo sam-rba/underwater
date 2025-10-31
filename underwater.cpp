@@ -112,18 +112,18 @@ enhance(cv::Mat &img) {
 	whiteBalance(img);
 
 	// Gamma correction and sharpening
-	cv::Mat g, s;
+	cv::Mat i1, i2;
 	#pragma omp parallel sections
 	{
 		#pragma omp section
 		{
-			g = gammaCorrect(img);
-			writeImage("gamma_corrected.png", g);
+			i1 = gammaCorrect(img);
+			writeImage("i1.png", i1);
 		}
 		#pragma omp section
 		{
-			s = sharpen(img);
-			writeImage("sharpened.png", s);
+			i2 = sharpen(img);
+			writeImage("i2.png", i2);
 		}
 	}
 
@@ -136,36 +136,36 @@ enhance(cv::Mat &img) {
 		// Laplacian weights
 		#pragma omp section
 		{
-			wl1 = laplacianWeight(g); // W_L of gamma-corrected image
+			wl1 = laplacianWeight(i1); // W_L of gamma-corrected image
 			write1dImage("wl1.png", wl1);
 		}
 		#pragma omp section
 		{
-			wl2 = laplacianWeight(s); // W_L of sharpened image
+			wl2 = laplacianWeight(i2); // W_L of sharpened image
 			write1dImage("wl2.png", wl2);
 		}
 
 		// Saliency weights
 		#pragma omp section
 		{
-			wsal1 = saliencyWeight(g); // W_S of gamma-corrected image
+			wsal1 = saliencyWeight(i1); // W_S of gamma-corrected image
 			write1dImage("wsal1.png", wsal1);
 		}
 		#pragma omp section
 		{
-			wsal2 = saliencyWeight(s); // W_S of sharpened image
+			wsal2 = saliencyWeight(i2); // W_S of sharpened image
 			write1dImage("wsal2.png", wsal2);
 		}
 
 		// Saturation weights
 		#pragma omp section
 		{
-			wsat1 = saturationWeight(g); // W_Sat of gamma-corrected image
+			wsat1 = saturationWeight(i1); // W_Sat of gamma-corrected image
 			write1dImage("wsat1.png", wsat1);
 		}
 		#pragma omp section
 		{
-			wsat2 = saturationWeight(s); // W_Sat of sharpened image
+			wsat2 = saturationWeight(i2); // W_Sat of sharpened image
 			write1dImage("wsat2.png", wsat2);
 		}
 	}
@@ -176,8 +176,12 @@ enhance(cv::Mat &img) {
 	write1dImage("w1.png", w1);
 	write1dImage("w2.png", w2);
 
-	// TODO
-
+	// Multi-scale fusion
+	// Set number of levels s.t. image is ~10x10 at last level
+	int n = log2((img.rows + img.cols) / 2 / 10);
+	n = max(1, n); // n >= 1
+	cv::Mat r = fuse(i1, i2, w1, w2, n);
+	writeImage("enhanced.png", r);
 }
 
 int

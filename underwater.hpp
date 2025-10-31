@@ -44,3 +44,11 @@ mergeWeightMaps(const cv::Mat &wl1, const cv::Mat &wl2,
 	const cv::Mat &wsal1, const cv::Mat &wsal2,
 	const cv::Mat &wsat1, const cv::Mat &wsat2,
 	cv::Mat &w1, cv::Mat &w2);
+
+// Perform multi-scale fusion on the two input images and weight maps.
+// i1 and i2 are the gamma-enhanced and sharpened images; they are CV_646FC3 BGR.
+// w1 and w2 are the weight maps; they are CV_64F.
+// n is the number of pyramid levels -- must be at least 1.
+// Returns the fused image R.
+cv::Mat
+fuse(const cv::Mat &i1, const cv::Mat &i2, const cv::Mat &w1, const cv::Mat &w2, int n);
