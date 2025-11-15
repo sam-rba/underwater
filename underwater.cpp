@@ -24,24 +24,9 @@ static cv::Mat
 gammaCorrect(const cv::Mat &img) {
 	assert(img.type() == CV_64FC3);
 
-	// Convert to uint8
-	cv::Mat g = img.clone();
-	cv::normalize(g, g, 255, 0, cv::NORM_MINMAX);
-	g.convertTo(g, CV_8UC3);
-
-	// Gamma correction
-	cv::Mat lookup(1, 256, CV_8U);
-	uchar *p = lookup.ptr();
-	for (int k = 0; k < 256; k++) {
-		p[k] = cv::saturate_cast<uchar>(pow(k / 255.0, GAMMA) * 255.0);
-	}
-	cv::LUT(g, lookup, g);
-
-	// Convert back to float64
-	g.convertTo(g, CV_64FC3);
-	cv::normalize(g, g, 1.0, 0.0, cv::NORM_MINMAX);
-
-	return g;
+	cv::Mat corr;
+	cv::pow(img, GAMMA, corr);
+	return corr;
 }
 
 // Sharpen the white-balanced image using (6) to get the "second input" of the multiscale fusion.
