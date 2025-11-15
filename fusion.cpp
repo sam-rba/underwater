@@ -64,15 +64,31 @@ fuseLevel(const cv::Mat &i1, const cv::Mat &i2, const cv::Mat &w1, const cv::Mat
 	cv::Mat gw1, gw2; // weight map Gaussian-filtered and decimated l times -- Gl{Wk(x)}
 	cv::Mat r; // fused image
 
-	// Laplacian pyramid of images
-	gi1 = decimate(filter(i1)); // Gl{I(x)}
-	gi2 = decimate(filter(i2));
-	li1 = decimate(i1) - gi1; // Ll{I(x)}
-	li2 = decimate(i2) - gi2;
+	// Build this level of Laplacian and Gaussian pyramids
+	#pragma omp parallel sections
+	{
+		// Laplacian pyramid of images
+		#pragma omp section
+		{
+			gi1 = decimate(filter(i1)); // Gl{I1(x)}
+			li1 = decimate(i1) - gi1; // Ll{I1(x)}
+		}
+		#pragma omp section
+		{
+			gi2 = decimate(filter(i2)); // Gl{I2(x)}
+			li2 = decimate(i2) - gi2; // Ll{I2(x)}
+		}
 
-	// Gaussian pyramid of weight maps
-	gw1 = decimate(filter(w1));
-	gw2 = decimate(filter(w2));
+		// Gaussian pyramid of weight maps
+		#pragma omp section
+		{
+			gw1 = decimate(filter(w1));
+		}
+		#pragma omp section
+		{
+			gw2 = decimate(filter(w2));
+		}
+	}
 
 	// Fuse this level
 	r = mul(li1, gw1) + mul(li2, gw2);
