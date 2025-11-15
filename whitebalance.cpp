@@ -15,10 +15,11 @@ compensateRed(cv::Mat &img) {
 	cv::Mat &g = channels[1];
 	cv::Mat &r = channels[2];
 
+	double gmean = cv::mean(g)[0];
+	double rmean = cv::mean(r)[0];
+
 	// Compensate red channel
-	cv::Mat tmp;
-	cv::multiply(ALPHA * (cv::mean(g)[0] - cv::mean(r)[0]) * (1.0 - r), g, tmp);
-	r = r + tmp;
+	r += ALPHA * (gmean - rmean) * (1.0 - r).mul(g);
 
 	// Merge channels
 	cv::merge(channels, 3, img);
