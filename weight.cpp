@@ -3,23 +3,31 @@
 
 #include "underwater.hpp" 
 
+// Convert a BGR image to L*a*b* colorspace.
+static cv::Mat
+bgrToLab(const cv::Mat &bgr) {
+	assert(bgr.type() == CV_64FC3);
+
+	cv::Mat lab;
+	bgr.convertTo(lab, CV_32FC3); // BGR2Lab only works with float32
+	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
+	lab.convertTo(lab, CV_64FC3); // convert back to float64
+	return lab;
+}
+
 cv::Mat
 laplacianWeight(const cv::Mat &img) {
 	assert(img.type() == CV_64FC3);
 
-	// Convert to L*a*b colorspace to get luminance channel
-	cv::Mat lab = img.clone();
-	lab.convertTo(lab, CV_32FC3); // BGR2Lab only works with float32
-	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
+	// Convert to L*a*b* colorspace to get luminance channel
+	cv::Mat lab = bgrToLab(img);
 	cv::Mat channels[3];
 	cv::split(lab, channels);
 	cv::Mat &lum = channels[0]; // luminance
 
 	// Take Laplacian of luminance
-	cv::Laplacian(lum, lum, CV_32F, LAPLACE_KSIZE);
+	cv::Laplacian(lum, lum, CV_64F, LAPLACE_KSIZE);
 	lum = cv::abs(lum);
-
-	lum.convertTo(lum, CV_64F);
 
 	return lum;
 }
@@ -28,11 +36,8 @@ cv::Mat
 saliencyWeight(const cv::Mat &img) {
 	assert(img.type() == CV_64FC3);
 
-	// Convert to L*a*b colorspace
-	cv::Mat lab = img.clone();
-	lab.convertTo(lab, CV_32FC3); // BGR2Lab only works with float32
-	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
-	lab.convertTo(lab, CV_64FC3); // convert back to float64
+	// Convert to L*a*b* colorspace
+	cv::Mat lab = bgrToLab(img);
 
 	cv::Scalar mu;
 	cv::Mat blur;
@@ -78,10 +83,7 @@ saturationWeight(const cv::Mat &img) {
 	cv::Mat &r = bgrChans[2];
 
 	// Split L*a*b channels to get luminance
-	cv::Mat lab = img.clone();
-	lab.convertTo(lab, CV_32FC3); // BGR2Lab only works with float32
-	cv::cvtColor(lab, lab, cv::COLOR_BGR2Lab);
-	lab.convertTo(lab, CV_64FC3); // convert back to float64
+	cv::Mat lab = bgrToLab(img);
 	cv::Mat labChans[3];
 	cv::split(lab, labChans);
 	cv::Mat &l = labChans[0]; // luminance
