@@ -31,6 +31,7 @@ whiteBalance(cv::Mat &img) {
 
 	// Compensate red channel
 	compensateRed(img);
+	writeImage("compensated.png", img);
 
 	// Convert to uint16
 	cv::normalize(img, img, UINT16_MAX, 0, cv::NORM_MINMAX);
