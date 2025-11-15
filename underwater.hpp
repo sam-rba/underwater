@@ -1,7 +1,7 @@
 #define ALPHA 2.5 // red compensation factor
 #define GAMMA 2.2 // gamma correction
 #define GAUSS_KSIZE cv::Size(5, 5) // Gaussian blur kernel size
-#define LAPLACE_KSIZE 3 // Laplacian kernel size
+#define LAPLACE_KSIZE 5 // Laplacian kernel size
 #define DELTA 0.1 // regularization term for weight map merge
 
 typedef enum {
