@@ -44,56 +44,57 @@ mul(const cv::Mat &c3, const cv::Mat &c1) {
 	return m;
 }
 
-cv::Mat
-fuse(const cv::Mat &i1, const cv::Mat &i2, const cv::Mat &w1, const cv::Mat &w2, int n) {
+// Recursively fuse each level of the pyramid.
+// i1, i2 -- Ll{Ik(x)} + Gl{Ik(x)} for each image k.
+// w1, w2 -- Gl{Wk(x)} for each weight map k.
+// n -- number of levels remaining.
+static cv::Mat
+fuseLevel(const cv::Mat &i1, const cv::Mat &i2, const cv::Mat &w1, const cv::Mat &w2, int nlevel) {
 	assert(i1.type() == CV_64FC3);
 	assert(i2.type() == CV_64FC3);
 	assert(w1.type() == CV_64F);
 	assert(w2.type() == CV_64F);
-	assert(n > 0);
+	assert(nlevel >= 0);
 	assert(i1.size == i2.size);
 	assert(i1.rows == w1.rows && i1.cols == w1.cols);
 	assert(i1.rows == w2.rows && i1.cols == w2.cols);
 
-	cv::Mat r; // fused image
-	cv::Mat rl; // fused image at level l
-	cv::Mat il1, il2; // input image at level l -- filtered decimated image of previous level
 	cv::Mat gi1, gi2; // image Gaussian-filtered and decimated l times -- Gl{Ik(x)}
-	cv::Mat gw1, gw2; // weight map Gaussian-filtered and decimated l times -- Gl{Wk(x)}
 	cv::Mat li1, li2; // Laplacian of image at level l -- Ll{Ik(x)}
+	cv::Mat gw1, gw2; // weight map Gaussian-filtered and decimated l times -- Gl{Wk(x)}
+	cv::Mat r; // fused image
 
-	// Initialize
-	r = cv::Mat::zeros(i1.rows, i1.cols, CV_64FC3);
-	il1 = i1;
-	il2 = i2;
-	gw1 = w1;
-	gw2 = w2;
+	// Laplacian pyramid of images
+	gi1 = decimate(filter(i1)); // Gl{I(x)}
+	gi2 = decimate(filter(i2));
+	li1 = decimate(i1) - gi1; // Ll{I(x)}
+	li2 = decimate(i2) - gi2;
 
-	// For each level
-	for (int i = 0; i < n; i++) {
-		// Gaussian and Laplacian of images
-		gi1 = decimate(filter(il1)); // Gl{I(x)}
-		gi2 = decimate(filter(il2));
-		li1 = il1 - upsample(gi1, il1.rows, il1.cols); // Ll{I(x)}
-		li2 = il2 - upsample(gi2, il2.rows, il2.cols);
+	// Gaussian pyramid of weight maps
+	gw1 = decimate(filter(w1));
+	gw2 = decimate(filter(w2));
 
-		// Gaussian of weight maps
-		gw1 = decimate(filter(gw1));
-		gw2 = decimate(filter(gw2));
+	// Fuse this level
+	r = mul(li1, gw1) + mul(li2, gw2);
 
-		// Fuse level l
-		rl = mul(li1, upsample(gw1, li1.rows, li2.cols)) +
-			mul(li2, upsample(gw2, li2.rows, li2.cols));
-
-		// Add to running sum -- R = sum(Rl)
-		r += upsample(rl, r.rows, r.cols);
-
-		// Start next level
-		il1 = gi1; // use decimated low-pass image as input to next iteration
-		il2 = gi2;
+	// Collapse levels of pyramid recursively
+	if (nlevel > 0) {
+		// Recurse
+		r += fuseLevel(li1+gi1, li2+gi2, gw1, gw2, nlevel-1);
 	}
+	return upsample(r, i1.rows, i1.cols);
+}
 
-	// Return fused image
-	// R = sum(Rl)
-	return r;
+cv::Mat
+fuse(const cv::Mat &i1, const cv::Mat &i2, const cv::Mat &w1, const cv::Mat &w2, int nlevel) {
+	assert(i1.type() == CV_64FC3);
+	assert(i2.type() == CV_64FC3);
+	assert(w1.type() == CV_64F);
+	assert(w2.type() == CV_64F);
+	assert(nlevel > 0);
+	assert(i1.size == i2.size);
+	assert(i1.rows == w1.rows && i1.cols == w1.cols);
+	assert(i1.rows == w2.rows && i1.cols == w2.cols);
+
+	return fuseLevel(i1, i2, w1, w2, nlevel+1);
 }
