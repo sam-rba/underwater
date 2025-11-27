@@ -2,6 +2,41 @@ Underwater image enhancement.
 
 Based on the technique described in "Color Balance and Fusion for Underwater Image Enhancement" by Codruta O. Ancuti, Cosmin Ancuti, Christophe De Vleeschouwer, and Philippe Bekaert published in "IEEE Transactions on Image Processing" Vol. 27, No. 1, January 2018.
 
+
+= Building on Linux =
+
+Requirements:
+- g++
+- OpenCV
+
+Simply run
+
+	$ make
+
+This will compile and link the executable `underwater`.
+
+
+= Building on Windows =
+
+Use WSL and follow the Linux instructions.
+
+
+= Usage =
+
+Synopsis:
+
+	$ underwater -i <infile> <outfile>
+
+	<infile> -- Input image file name.
+	<outfile> -- Output (enhanced) image file name.
+
+Example:
+
+	$ ./underwater -i foo.jpg enhanced.png
+
+
+= Copyright Notice =
+
 Copyright 2025 Sam Anthony.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
