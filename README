@@ -7,9 +7,9 @@ Based on the technique described in "Color Balance and Fusion for Underwater Ima
 
 Requirements:
 - g++
-- OpenCV
+- opencv4
 
-Simply run
+To build the program, simply run
 
 	$ make
 
