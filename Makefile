@@ -1,7 +1,7 @@
 CC = g++
-INCLUDES = -I/usr/include/opencv4
+INCLUDES = $(shell pkg-config --cflags opencv4)
 CFLAGS = -std=c++11 -Wall -pedantic -g -fopenmp ${INCLUDES}
-LDFLAGS = -lopencv_imgcodecs -lopencv_xphoto -lopencv_imgproc -lopencv_core
+LDFLAGS = $(shell pkg-config --libs opencv4)
 
 SRC = $(wildcard *.cpp)
 HDR = $(wildcard *.hpp)
